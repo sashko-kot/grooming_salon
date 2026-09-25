@@ -1,18 +1,22 @@
 package ru.mirea.ui;
 
+import ru.mirea.analytics.GroomingAnalytics;
 import ru.mirea.model.GroomingService;
 import ru.mirea.service.GroomingServiceService;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Scanner;
 
 public class AdminMenuUI {
     private final GroomingServiceService service;
+    private final GroomingAnalytics analytics;
 
     public AdminMenuUI(GroomingServiceService service) {
         this.service = service;
+        this.analytics = new GroomingAnalytics(); 
     }
 
     public void show(Scanner scanner) {
@@ -23,6 +27,9 @@ public class AdminMenuUI {
             System.out.println("3. Найти услугу по ID");
             System.out.println("4. Изменить услугу");
             System.out.println("5. Удалить услугу");
+            System.out.println("6. Аналитика (средняя цена, самая долгая услуга, группировка)");
+            System.out.println("7. Поиск услуг по ключевому слову");
+            System.out.println("8. Показать услуги дешевле заданной цены");
             System.out.println("0. Назад");
             System.out.print("Выберите действие: ");
 
@@ -32,11 +39,75 @@ public class AdminMenuUI {
                 case "3" -> findById(scanner);
                 case "4" -> updateService(scanner);
                 case "5" -> deleteService(scanner);
+                case "6" -> showAnalytics();
+                case "7" -> searchByKeyword(scanner);
+                case "8" -> findCheaperThan(scanner);
                 case "0" -> { return; }
                 default -> System.out.println("Ошибка: неверный пункт меню.");
             }
         }
     }
+
+
+    private void showAnalytics() {
+        try {
+            List<GroomingService> services = service.getAllServices();
+            if (services.isEmpty()) {
+                System.out.println("Нет данных для анализа.");
+                return;
+            }
+
+            System.out.println("\n--- АНАЛИТИКА ---");
+            System.out.println("Средняя стоимость услуги: " + analytics.calculateAveragePrice(services) + " руб.");
+
+            GroomingService longest = analytics.getLongestService(services);
+            if (longest != null) {
+                System.out.println("Самая долгая услуга: " + longest.title()
+                        + " (" + longest.durationMinutes() + " мин, " + longest.price() + " руб.)");
+            }
+
+            System.out.println("\n--- Группировка по длительности ---");
+            Map<String, List<GroomingService>> grouped = analytics.groupByDuration(services);
+            grouped.forEach((category, list) -> {
+                System.out.println(category + ":");
+                list.forEach(s -> System.out.println("  - " + s.title() + " (" + s.durationMinutes() + " мин)"));
+            });
+
+        } catch (RuntimeException e) {
+            System.out.println("Ошибка аналитики: " + e.getMessage());
+        }
+    }
+
+    private void searchByKeyword(Scanner scanner) {
+        try {
+            String keyword = InputHelper.readRequiredString(scanner, "Введите ключевое слово: ");
+            List<GroomingService> found = analytics.searchByKeyword(service.getAllServices(), keyword);
+            if (found.isEmpty()) {
+                System.out.println("Ничего не найдено.");
+            } else {
+                System.out.println("Найдено услуг: " + found.size());
+                printServices(found);
+            }
+        } catch (RuntimeException e) {
+            System.out.println("Ошибка поиска: " + e.getMessage());
+        }
+    }
+
+    private void findCheaperThan(Scanner scanner) {
+        try {
+            BigDecimal maxPrice = InputHelper.readMoney(scanner, "Максимальная цена (руб): ");
+            List<GroomingService> cheap = analytics.findServicesCheaperThan(service.getAllServices(), maxPrice);
+            if (cheap.isEmpty()) {
+                System.out.println("Нет услуг дешевле " + maxPrice + " руб.");
+            } else {
+                System.out.println("Услуги дешевле " + maxPrice + " руб. (отсортированы по цене):");
+                printServices(cheap);
+            }
+        } catch (RuntimeException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
 
     private void addService(Scanner scanner) {
         try {
