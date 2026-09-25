@@ -11,14 +11,17 @@ import java.util.Optional;
 
 import ru.mirea.model.GroomingService;
 
+// Реализация репозитория через JDBC.
+// С помощью SQL-запросов она работает напрямую с таблицей услуг в базе данных.
 public class GroomingServiceJdbcRepository implements GroomingServiceRepository {
 
+    // Сохраняет новую услугу в БД.
     @Override
     public void save(GroomingService service) {
         String sql = "INSERT INTO grooming_services (title, duration_minutes, price, description) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setString(1, service.title());
             ps.setInt(2, service.durationMinutes());
@@ -32,12 +35,13 @@ public class GroomingServiceJdbcRepository implements GroomingServiceRepository 
         }
     }
 
+    // Ищет одну услугу по уникальному ID.
     @Override
     public Optional<GroomingService> findById(Long id) {
         String sql = "SELECT id, title, duration_minutes, price, description FROM grooming_services WHERE id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setLong(1, id);
 
@@ -54,14 +58,15 @@ public class GroomingServiceJdbcRepository implements GroomingServiceRepository 
         return Optional.empty();
     }
 
+    // Возвращает все услуги из таблицы в порядке возрастания ID.
     @Override
     public List<GroomingService> findAll() {
         List<GroomingService> services = new ArrayList<>();
         String sql = "SELECT id, title, duration_minutes, price, description FROM grooming_services ORDER BY id";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
                 services.add(mapRowToGroomingService(rs));
@@ -74,12 +79,13 @@ public class GroomingServiceJdbcRepository implements GroomingServiceRepository 
         return services;
     }
 
+    // Обновляет данные услуги в БД.
     @Override
     public boolean update(GroomingService service) {
         String sql = "UPDATE grooming_services SET title = ?, duration_minutes = ?, price = ?, description = ? WHERE id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, service.title());
             ps.setInt(2, service.durationMinutes());
@@ -95,12 +101,13 @@ public class GroomingServiceJdbcRepository implements GroomingServiceRepository 
         }
     }
 
+    // Удаляет услугу из таблицы по ID.
     @Override
     public boolean deleteById(Long id) {
         String sql = "DELETE FROM grooming_services WHERE id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setLong(1, id);
 
@@ -112,14 +119,13 @@ public class GroomingServiceJdbcRepository implements GroomingServiceRepository 
         }
     }
 
-    // Вспомогательный маппер строки ResultSet в модель
+    // Преобразует строку из результата SQL-запроса в объект GroomingService.
     private GroomingService mapRowToGroomingService(ResultSet rs) throws SQLException {
         return new GroomingService(
-            rs.getLong("id"),
-            rs.getString("title"),
-            rs.getInt("duration_minutes"),
-            rs.getBigDecimal("price"),
-            rs.getString("description")
-        );
+                rs.getLong("id"),
+                rs.getString("title"),
+                rs.getInt("duration_minutes"),
+                rs.getBigDecimal("price"),
+                rs.getString("description"));
     }
 }

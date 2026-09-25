@@ -4,6 +4,8 @@ import ru.mirea.service.GroomingServiceService;
 
 import java.util.Scanner;
 
+// Главное меню приложения.
+// Здесь пользователь выбирает, в каком режиме он хочет работать: администратор, клиент, аналитика или экспорт.
 public class MainMenu {
     private final GroomingServiceService service;
     private final AdminMenuUI adminMenu;
@@ -11,6 +13,7 @@ public class MainMenu {
     private final AnalyticsMenuUI analyticsMenu;
     private final ExportMenuUI exportMenu;
 
+    // В конструкторе создаются все подменю приложения.
     public MainMenu(GroomingServiceService service) {
         this.service = service;
         this.adminMenu = new AdminMenuUI(service);
@@ -19,6 +22,7 @@ public class MainMenu {
         this.exportMenu = new ExportMenuUI(service);
     }
 
+    // Запускает бесконечный цикл меню программы.
     public void start() {
         try (Scanner scanner = new Scanner(System.in)) {
             while (true) {
